@@ -3,9 +3,7 @@
  * X-0x0ACE-Key: MOKgYzGV65EODZ4xqkY28rmMNjRLg7ywZv30lQAWebp9JGdKzay1Ponvwq649p5A
  */
 
-const string_padding_polyfill = require( './utils/string_padding_polyfill.js' );
-
-string_padding_polyfill();
+const string_padding_polyfill = require( './utils/string_padding_polyfill.js' )();
 
 const fs = require( 'fs' );
 
@@ -26,6 +24,7 @@ const stack = [];
 let references = [];
 let regs_snapshot = ['0x0000', '0x0000', '0x0000', '0x0000'];
 
+const code = ['move', 'or', 'xor', 'and', 'neg', 'add', 'sub', 'mult', 'shl', 'shr', 'inc', 'dec', 'push', 'pop', 'cmp', 'jnz', 'jz'];
 let __line_num = 0;
 let __zero_flag = 0;
 let __prev_zero_flag = 0;
@@ -49,9 +48,9 @@ while( j <= MAX_LOOP_ITERATIONS )
 		let chunk = buffered.readUInt16LE( i );
 
 		/**
-		 *	<chunk>:
-		 *	xx    xx    xxxx   xxxxxxxx 16-bit
-		 *	src   dst   mode   code
+		 *  <chunk>:
+		 *  xx    xx    xxxx   xxxxxxxx 16-bit
+		 *  src   dst   mode   code
 		 */
 		let __code = ( chunk & 0x00ff );
 		let __mode = ( chunk & 0x0f00 ) >> 8;
@@ -75,70 +74,53 @@ while( j <= MAX_LOOP_ITERATIONS )
 			i += 2;
 		}
 
-		const code = ['move', 'or', 'xor', 'and', 'neg', 'add', 'sub', 'mult', 'shl', 'shr', 'inc', 'dec', 'push', 'pop', 'cmp', 'jnz', 'jz'];
-
 		switch( __code )
 		{
 			case 0x00: // move
 				r[__dst] = __imm || r[__src];
 				break;
-
 			case 0x01: // bitewise or
 				r[__dst] |= __imm || r[__src];
 				break;
-
 			case 0x02: // bitwise xor
 				r[__dst] ^= __imm || r[__src];
 				break;
-
 			case 0x03: // bitwise and
 				r[__dst] &= __imm || r[__src];
 				break;
-
 			case 0x04: // bitwise negation
 				r[__dst] ^= 0xffff;
 				break;
-
 			case 0x05: // addition
 				r[__dst] += __imm || r[__src];
 				break;
-
 			case 0x06: // subtraction
 				r[__dst] -= __imm || r[__src];
 				break;
-
 			case 0x07: // multiplication
 				r[__dst] *= __imm || r[__src];
 				break;
-
 			case 0x08: // shift left
 				r[__dst] <<= __imm || r[__src];
 				break;
-
 			case 0x09: // shift right
 				r[__dst] >>= __imm || r[__src];
 				break;
-
 			case 0x0a: // increment
 				++r[__dst];
 				break;
-
 			case 0x0b: // decrement
 				--r[__dst];
 				break;
-
 			case 0x0c: // push on stack
 				stack.push( __imm || r[__dst] );
 				break;
-
 			case 0x0d: // pop from stack
 				r[__dst] = stack.pop();
 				break;
-
 			case 0x0e: // compare
 				__zero_flag = r[__dst] - r[__src] === 0 ? 1 : 0;
 				break;
-
 			case 0x0f: // jump to nth opcode when not zero
 				if ( __zero_flag !== 1 )
 				{
@@ -146,7 +128,6 @@ while( j <= MAX_LOOP_ITERATIONS )
 					i = r[__dst] !== 0 ? references[jump] : i;
 				}
 				break;
-
 			case 0x10: // jump to nth opcode when zero
 				if ( __zero_flag === 1 )
 				{
@@ -179,7 +160,7 @@ while( j <= MAX_LOOP_ITERATIONS )
 		__line_num = jump || ++__line_num;
 	} catch ( e )
 	{
-		// console.log( e );
+		// throw e;
 		break;
 	}
 }
@@ -193,7 +174,5 @@ console.log( debug.join( '\n' ) );
 
 fs.writeFile( `debug/log-${filename}.log`, debug.join( '\r\n' ), 'utf-8', err => {
 	if ( err)
-	{
 		throw err;
-	}
 } );

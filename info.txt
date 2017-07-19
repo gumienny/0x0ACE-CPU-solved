@@ -1,0 +1,63 @@
+ * In a core of each computer there is...
+ * let's start short esoteric journey. we give you binary to run, 
+ * you let us know what were in registers at the end of execution
+ * don't forget you have 5 seconds to respond.
+ * 
+ * -----------------------------------------------------------------------------
+ * | 16-bit hex value | 16-bit hex value | 16-bit hex value | 16-bit hex value |   Send
+ * -----------------------------------------------------------------------------
+ * 
+ * CPU description:
+ * num registers: 4
+ * endianess: little
+ * register width: 16bit
+ * opcode format:
+ *    0 bit                            16 bit                  32 bit
+ *    |                   (opt)    (opt)  |        (opt)          |
+ *    |     code   mod  dest-reg  src-reg | immediate value (imm) |
+ *    | xxxxxxxx  xxxx        xx       xx |   xxxxxxxx xxxxxxxx   |
+ * mod:
+ *     0x0 - imm
+ *     0x1 - reg
+ *     0x2 - reg+imm
+ *     0x3 - reg+reg
+ *     0x4-0xf - reserved
+ * {dest,src}-reg:
+ *     0x0 - r0
+ *     0x1 - r1
+ *     0x2 - r2
+ *     0x3 - r3
+ *
+ * example:
+ * bin: 00000000 00010010 00011010 10011111
+ * hex: 00 12 9f 1a
+ * explanation: move value 6815 to r1
+ *
+ * instructions:
+ * code	| operation
+ * -----+---------
+ * 0x00	| move
+ * 0x01	| bitwise or
+ * 0x02	| bitwise xor
+ * 0x03	| bitwise and
+ * 0x04	| bitwise negation
+ * 0x05	| addition
+ * 0x06	| subtraction
+ * 0x07	| multiplication
+ * 0x08	| shift left
+ * 0x09	| shift right
+ * 0x0a	| increment
+ * 0x0b	| decrement
+ * 0x0c	| push on stack
+ * 0x0d	| pop from stack
+ * 0x0e	| compare
+ * 0x0f	| jump to nth opcode when not zero*
+ * 0x10	| jump to nth opcode when zero*
+ * * - nth opcode is not nth byte in binary
+ * 
+ * All arithmetic and logical instructions set zero
+ * flag according to the result - if result of operation
+ * was 0 - zero flag is set, else zero flag is cleared.
+ * Compare operation executes subtraction without writing any
+ * registers (just setting the zero flag).
+ * Shift operations are not circular!

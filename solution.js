@@ -38,7 +38,7 @@ const __DEBUG = [' reg0:   reg1:   reg2:   reg3:   zero:    line: bin:          
 
 let __answer = '';
 
-const hex_4 = num => '0x' + num.toString( 16 ).padStart( 4, '0' );
+const hex_4 = ( num, prefix = true ) => ( prefix ? '0x' : '' ) + num.toString( 16 ).padStart( 4, '0' );
 
 while( __i <= __MAX_LOOP_ITERATIONS )
 {
@@ -64,12 +64,12 @@ while( __i <= __MAX_LOOP_ITERATIONS )
 
 		__jump = 0;
 
-		__raw_bytes = __buffered.readUInt16BE( __byte_offset ).toString( 16 ).padStart( 4, '0' );
+		__raw_bytes = hex_4( __buffered.readUInt16BE( __byte_offset ), false );
 
 		if ( __mode === 2 || __mode === 0 )
 		{
 			__imm = __buffered.readUInt16LE( __byte_offset + 2 );
-			__raw_bytes_imm = __buffered.readUInt16BE( __byte_offset + 2 ).toString( 16 ).padStart( 4, '0' );
+			__raw_bytes_imm = hex_4( __buffered.readUInt16BE( __byte_offset + 2 ), false );
 			__byte_offset += 4;
 		} else
 		{
@@ -170,7 +170,7 @@ while( __i <= __MAX_LOOP_ITERATIONS )
 }
 
 __r.forEach( ( reg, i ) => {
-	__answer += `reg${i}=${hex_4( __r[i] )}&`;
+	__answer += `reg${i}=${hex_4( __r[i], false )}&`;
 } );
 
 __answer = __answer.substring( 0, __answer.length - 1 );

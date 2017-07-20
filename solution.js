@@ -18,7 +18,7 @@ const __binary_files = [
 
 const __file = __binary_files[0];
 
-const __buffered = fs.readFileSync( `bin/${__file}.bin` );
+const __buffered = fs.readFileSync( process.argv[2] || `bin/${__file}.bin` );
 const __r = new Uint16Array( [0, 0, 0, 0] );
 const __stack = [];
 const __refs = [];
@@ -34,9 +34,11 @@ let __byte_offset = 0;
 let __i = 0;
 
 const __MAX_LOOP_ITERATIONS = 1000;
-const __debug = [' reg0:   reg1:   reg2:   reg3:   zero:    line: bin:          assembler:' ];
+const __DEBUG = [' reg0:   reg1:   reg2:   reg3:   zero:    line: bin:          assembler:' ];
 
-let __result = '';
+let __answer = '';
+
+const hex_4 = num => '0x' + num.toString( 16 ).padStart( 4, '0' );
 
 while( __i <= __MAX_LOOP_ITERATIONS )
 {
@@ -49,8 +51,8 @@ while( __i <= __MAX_LOOP_ITERATIONS )
 
 		/**
 		 *  <__chunk>:
-		 *  xx    xx    xxxx   xxxxxxxx 16-bit
-		 *  src   dst   mode   code
+		 *  xx  xx  xxxx xxxxxxxx 16-bit
+		 *  src dst mode code
 		 */
 		let __code = ( __chunk & 0x00ff );
 		let __mode = ( __chunk & 0x0f00 ) >> 8;
@@ -62,60 +64,62 @@ while( __i <= __MAX_LOOP_ITERATIONS )
 
 		__jump = 0;
 
-		__raw_bytes = __buffered.readUInt16BE( __byte_offset );
+		__raw_bytes = __buffered.readUInt16BE( __byte_offset ).toString( 16 ).padStart( 4, '0' );
 
 		if ( __mode === 2 || __mode === 0 )
 		{
 			__imm = __buffered.readUInt16LE( __byte_offset + 2 );
-			__raw_bytes_imm = __buffered.readUInt16BE( __byte_offset + 2 );
+			__raw_bytes_imm = __buffered.readUInt16BE( __byte_offset + 2 ).toString( 16 ).padStart( 4, '0' );
 			__byte_offset += 4;
 		} else
 		{
 			__byte_offset += 2;
 		}
 
+		let __value = __imm || __r[__src];
+
 		switch( __code )
 		{
-			case 0x00: // move
-				__r[__dst] = __imm || __r[__src];
+			case 0x00:
+				__r[__dst] = __value;
 				break;
-			case 0x01: // bitewise or
-				__r[__dst] |= __imm || __r[__src];
+			case 0x01:
+				__r[__dst] |= __value;
 				break;
-			case 0x02: // bitwise xor
-				__r[__dst] ^= __imm || __r[__src];
+			case 0x02:
+				__r[__dst] ^= __value;
 				break;
-			case 0x03: // bitwise and
-				__r[__dst] &= __imm || __r[__src];
+			case 0x03:
+				__r[__dst] &= __value;
 				break;
-			case 0x04: // bitwise negation
-				__r[__dst] ^= 0xffff;
+			case 0x04:
+				__r[__dst] = ~__r[__dst];
 				break;
-			case 0x05: // addition
-				__r[__dst] += __imm || __r[__src];
+			case 0x05:
+				__r[__dst] += __value;
 				break;
-			case 0x06: // subtraction
-				__r[__dst] -= __imm || __r[__src];
+			case 0x06:
+				__r[__dst] -= __value;
 				break;
-			case 0x07: // multiplication
-				__r[__dst] *= __imm || __r[__src];
+			case 0x07:
+				__r[__dst] *= __value;
 				break;
-			case 0x08: // shift left
-				__r[__dst] <<= __imm || __r[__src];
+			case 0x08:
+				__r[__dst] <<= __value;
 				break;
-			case 0x09: // shift right
-				__r[__dst] >>= __imm || __r[__src];
+			case 0x09:
+				__r[__dst] >>= __value;
 				break;
-			case 0x0a: // increment
+			case 0x0a:
 				++__r[__dst];
 				break;
-			case 0x0b: // decrement
+			case 0x0b:
 				--__r[__dst];
 				break;
-			case 0x0c: // push on stack
-				__stack.push( __imm || __r[__dst] );
+			case 0x0c:
+				__stack.push( __value );
 				break;
-			case 0x0d: // pop from stack
+			case 0x0d:
 				__r[__dst] = __stack.pop();
 				break;
 			case 0x0e: // compare
@@ -142,19 +146,19 @@ while( __i <= __MAX_LOOP_ITERATIONS )
 			__zero_flag = __r[__dst] ? 0 : 1;
 		}
 
-		__debug_line += '[' + __regs_snapshot.join( ', ' ) + '] z: ';
-		__debug_line += __prev_zero_flag + '  |  ';
-		__debug_line += __line_num.toString( 10 ).padStart( 3, '0' ) + ':  ';
-		__debug_line += ( __raw_bytes.toString( 16 ).padStart( 4, '0' ) + ' ' + ( __raw_bytes_imm ? __raw_bytes_imm.toString( 16 ).padStart( 4, '0' ) : '' ) ).padEnd( 9, ' ' ) + '  |  ';
-		__debug_line += __codes[__code].padEnd( 5, ' ' );
-		__debug_line += ( __code !== 0x0f && __code !== 0x10 ? 'r' + __dst : '' ) + ( __mode === 3 ? ', r' + __src : ( __imm ? ( __code !== 0x0f && __code !== 0x10 ? ', ' : '' ) + '0x' + __imm.toString( 16 ).padStart( 4, '0' ) : '' ) );
+		__debug_line = ( `[${__regs_snapshot.join( ', ' )}] z: ${__prev_zero_flag}  |  ` )
+		             + ( __line_num.toString( 10 ).padStart( 3, '0' ) + ':  ' )
+		             + ( `${__raw_bytes} ${__raw_bytes_imm || '    '}  |  ${__codes[__code].padEnd( 5, ' ' )}` )
+		             + ( __mode !== 0 ? 'r' + __dst + ' ' : hex_4( __imm ) )
+		             + ( __mode === 2 ? hex_4( __imm ) : '' )
+		             + ( __mode === 3 ? 'r' + __src : '' );
 
-		__debug.push( __debug_line );
+		__DEBUG.push( __debug_line );
 
 		__prev_zero_flag = __zero_flag;
 
 		__r.forEach( ( reg, index ) => {
-			__regs_snapshot[index] = '0x' + reg.toString( 16 ).padStart( 4, '0' );
+			__regs_snapshot[index] = hex_4( reg );
 		} );
 
 		__line_num = __jump || ++__line_num;
@@ -166,17 +170,17 @@ while( __i <= __MAX_LOOP_ITERATIONS )
 }
 
 __r.forEach( ( reg, i ) => {
-	__result += `reg${i}=${__r[i].toString( 16 ).padStart( 4, '0' )}&`;
+	__answer += `reg${i}=${hex_4( __r[i] )}&`;
 } );
 
-__result = __result.substring( 0, __result.length - 1 );
+__answer = __answer.substring( 0, __answer.length - 1 );
 
-__debug.push( '[' + __regs_snapshot.join( ', ' ) + ']' );
-__debug.push( '\r\n' + __result );
+__DEBUG.push( '[' + __regs_snapshot.join( ', ' ) + ']' );
+__DEBUG.push( '\r\n' + __answer );
 
-process.stdout.write( __debug.join( '\n' ) );
+process.stdout.write( __DEBUG.join( '\n' ) );
 
-fs.writeFile( `debug/log-${__file}.log`, __debug.join( '\r\n' ), 'utf-8', err => {
+fs.writeFile( `debug/log-${__file}.log`, __DEBUG.join( '\r\n' ), 'utf-8', err => {
 	if ( err )
 		throw err;
 } );

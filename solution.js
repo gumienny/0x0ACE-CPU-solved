@@ -3,11 +3,11 @@
  * X-0x0ACE-Key: MOKgYzGV65EODZ4xqkY28rmMNjRLg7ywZv30lQAWebp9JGdKzay1Ponvwq649p5A
  */
 
-const string_padding_polyfill = require( './utils/string_padding_polyfill.js' )();
+const __string_padding_polyfill = require( './utils/string_padding_polyfill.js' )();
 
 const fs = require( 'fs' );
 
-const binaries = [
+const __binary_files = [
 	'test',
 	'3d1e7f28-a1db-490a-9ead-9b187e028033',
 	'3f99a385-2c29-4243-b227-d8835d84c5a0',
@@ -16,148 +16,148 @@ const binaries = [
 	'c5524aec-648c-42aa-9724-3784ddbee2f2'
 ];
 
-let filename = binaries[3];
+const __file = __binary_files[0];
 
-let buffered = fs.readFileSync( `bin/${filename}.bin` );
-let r = new Uint16Array( [0, 0, 0, 0] );
-const stack = [];
-let references = [];
-let regs_snapshot = ['0x0000', '0x0000', '0x0000', '0x0000'];
+const __buffered = fs.readFileSync( `bin/${__file}.bin` );
+const __r = new Uint16Array( [0, 0, 0, 0] );
+const __stack = [];
+const __refs = [];
+const __regs_snapshot = ['0x0000', '0x0000', '0x0000', '0x0000'];
+const __codes = ['move', 'or', 'xor', 'and', 'neg', 'add', 'sub', 'mult', 'shl', 'shr', 'inc', 'dec', 'push', 'pop', 'cmp', 'jnz', 'jz'];
 
-const code = ['move', 'or', 'xor', 'and', 'neg', 'add', 'sub', 'mult', 'shl', 'shr', 'inc', 'dec', 'push', 'pop', 'cmp', 'jnz', 'jz'];
 let __line_num = 0;
 let __zero_flag = 0;
 let __prev_zero_flag = 0;
 
-let jump = 0;
-let i = 0;
-let j = 0;
+let __jump = 0;
+let __byte_offset = 0;
+let __i = 0;
 
-const MAX_LOOP_ITERATIONS = 1000;
-const debug = [' reg0:   reg1:   reg2:   reg3:   zero:    line: bin:          assembler:\r\n' ];
+const __MAX_LOOP_ITERATIONS = 1000;
+const __debug = [' reg0:   reg1:   reg2:   reg3:   zero:    line: bin:          assembler:' ];
 
-let result = '';
+let __result = '';
 
-while( j <= MAX_LOOP_ITERATIONS )
+while( __i <= __MAX_LOOP_ITERATIONS )
 {
-	j += 1;
-	references[__line_num] = i;
+	__i += 1;
+	__refs[__line_num] = __byte_offset;
 
 	try
 	{
-		let chunk = buffered.readUInt16LE( i );
+		let __chunk = __buffered.readUInt16LE( __byte_offset );
 
 		/**
-		 *  <chunk>:
+		 *  <__chunk>:
 		 *  xx    xx    xxxx   xxxxxxxx 16-bit
 		 *  src   dst   mode   code
 		 */
-		let __code = ( chunk & 0x00ff );
-		let __mode = ( chunk & 0x0f00 ) >> 8;
-		let __dst  = ( chunk & 0b0011000000000000 ) >> 12;
-		let __src  = ( chunk & 0b1100000000000000 ) >> 14;
+		let __code = ( __chunk & 0x00ff );
+		let __mode = ( __chunk & 0x0f00 ) >> 8;
+		let __dst  = ( __chunk & 0x3000 ) >> 12;
+		let __src  = ( __chunk & 0xc000 ) >> 14;
 		let __imm = 0;
-		let part1, part2;
-		let debug_line = '';
+		let __raw_bytes, __raw_bytes_imm;
+		let __debug_line = '';
 
-		jump = 0;
+		__jump = 0;
 
-		part1 = buffered.readUInt16BE( i );
+		__raw_bytes = __buffered.readUInt16BE( __byte_offset );
 
 		if ( __mode === 2 || __mode === 0 )
 		{
-			__imm = buffered.readUInt16LE( i + 2 );
-			part2 = buffered.readUInt16BE( i + 2 );
-			i += 4;
+			__imm = __buffered.readUInt16LE( __byte_offset + 2 );
+			__raw_bytes_imm = __buffered.readUInt16BE( __byte_offset + 2 );
+			__byte_offset += 4;
 		} else
 		{
-			i += 2;
+			__byte_offset += 2;
 		}
 
 		switch( __code )
 		{
 			case 0x00: // move
-				r[__dst] = __imm || r[__src];
+				__r[__dst] = __imm || __r[__src];
 				break;
 			case 0x01: // bitewise or
-				r[__dst] |= __imm || r[__src];
+				__r[__dst] |= __imm || __r[__src];
 				break;
 			case 0x02: // bitwise xor
-				r[__dst] ^= __imm || r[__src];
+				__r[__dst] ^= __imm || __r[__src];
 				break;
 			case 0x03: // bitwise and
-				r[__dst] &= __imm || r[__src];
+				__r[__dst] &= __imm || __r[__src];
 				break;
 			case 0x04: // bitwise negation
-				r[__dst] ^= 0xffff;
+				__r[__dst] ^= 0xffff;
 				break;
 			case 0x05: // addition
-				r[__dst] += __imm || r[__src];
+				__r[__dst] += __imm || __r[__src];
 				break;
 			case 0x06: // subtraction
-				r[__dst] -= __imm || r[__src];
+				__r[__dst] -= __imm || __r[__src];
 				break;
 			case 0x07: // multiplication
-				r[__dst] *= __imm || r[__src];
+				__r[__dst] *= __imm || __r[__src];
 				break;
 			case 0x08: // shift left
-				r[__dst] <<= __imm || r[__src];
+				__r[__dst] <<= __imm || __r[__src];
 				break;
 			case 0x09: // shift right
-				r[__dst] >>= __imm || r[__src];
+				__r[__dst] >>= __imm || __r[__src];
 				break;
 			case 0x0a: // increment
-				++r[__dst];
+				++__r[__dst];
 				break;
 			case 0x0b: // decrement
-				--r[__dst];
+				--__r[__dst];
 				break;
 			case 0x0c: // push on stack
-				stack.push( __imm || r[__dst] );
+				__stack.push( __imm || __r[__dst] );
 				break;
 			case 0x0d: // pop from stack
-				r[__dst] = stack.pop();
+				__r[__dst] = __stack.pop();
 				break;
 			case 0x0e: // compare
-				__zero_flag = r[__dst] - r[__src] === 0 ? 1 : 0;
+				__zero_flag = __r[__dst] - __r[__src] === 0 ? 1 : 0;
 				break;
 			case 0x0f: // jump to nth opcode when not zero
 				if ( __zero_flag !== 1 )
 				{
-					jump = __imm || r[__src];
-					i = r[__dst] !== 0 ? references[jump] : i;
+					__jump = __imm || __r[__src];
+					__byte_offset = __r[__dst] !== 0 ? __refs[__jump] : __byte_offset;
 				}
 				break;
 			case 0x10: // jump to nth opcode when zero
 				if ( __zero_flag === 1 )
 				{
-					jump = __imm || r[__src];
-					i = r[__dst] !== 0 ? references[jump] : i;
+					__jump = __imm || __r[__src];
+					__byte_offset = __r[__dst] !== 0 ? __refs[__jump] : __byte_offset;
 				}
 				break;
 		}
 
 		if ( __code >= 0.00 && __code <= 0x0b )
 		{
-			__zero_flag = r[__dst] ? 0 : 1;
+			__zero_flag = __r[__dst] ? 0 : 1;
 		}
 
-		debug_line += '[' + regs_snapshot.join( ', ' ) + '] z: ';
-		debug_line += __prev_zero_flag + '  |  ';
-		debug_line += __line_num.toString(10).padStart(3, '0') + ':  ';
-		debug_line += ( part1.toString(16).padStart(4, '0') + ' ' + (part2 ? part2.toString(16).padStart(4, '0') : '') ).padEnd(9, ' ') + '  |  ';
-		debug_line += code[__code].padEnd(5, ' ');
-		debug_line += ( __code !== 0x0f && __code !== 0x10 ? 'r' + __dst : '' ) + ( __mode === 3 ? ', r' + __src : (__imm ? (__code !== 0x0f && __code !== 0x10 ? ', ' : '') + '0x' + __imm.toString(16).padStart(4, '0') : '') );
+		__debug_line += '[' + __regs_snapshot.join( ', ' ) + '] z: ';
+		__debug_line += __prev_zero_flag + '  |  ';
+		__debug_line += __line_num.toString( 10 ).padStart( 3, '0' ) + ':  ';
+		__debug_line += ( __raw_bytes.toString( 16 ).padStart( 4, '0' ) + ' ' + ( __raw_bytes_imm ? __raw_bytes_imm.toString( 16 ).padStart( 4, '0' ) : '' ) ).padEnd( 9, ' ' ) + '  |  ';
+		__debug_line += __codes[__code].padEnd( 5, ' ' );
+		__debug_line += ( __code !== 0x0f && __code !== 0x10 ? 'r' + __dst : '' ) + ( __mode === 3 ? ', r' + __src : ( __imm ? ( __code !== 0x0f && __code !== 0x10 ? ', ' : '' ) + '0x' + __imm.toString( 16 ).padStart( 4, '0' ) : '' ) );
 
-		debug.push( debug_line );
-		
+		__debug.push( __debug_line );
+
 		__prev_zero_flag = __zero_flag;
 
-		r.forEach( ( reg, i ) => {
-			regs_snapshot[i] = '0x' + reg.toString(16).padStart(4, '0');
+		__r.forEach( ( reg, index ) => {
+			__regs_snapshot[index] = '0x' + reg.toString( 16 ).padStart( 4, '0' );
 		} );
 
-		__line_num = jump || ++__line_num;
+		__line_num = __jump || ++__line_num;
 	} catch ( e )
 	{
 		// throw e;
@@ -165,14 +165,18 @@ while( j <= MAX_LOOP_ITERATIONS )
 	}
 }
 
-result = `reg0=${r[0].toString(16).padStart(4,'0')}&reg1=${r[1].toString(16).padStart(4,'0')}&reg2=${r[2].toString(16).padStart(4,'0')}&reg3=${r[3].toString(16).padStart(4,'0')}`;
+__r.forEach( ( reg, i ) => {
+	__result += `reg${i}=${__r[i].toString( 16 ).padStart( 4, '0' )}&`;
+} );
 
-debug.push( '[' + regs_snapshot.join( ', ' ) + ']' );
-debug.push( '\r\n' + result );
+__result = __result.substring( 0, __result.length - 1 );
 
-console.log( debug.join( '\n' ) );
+__debug.push( '[' + __regs_snapshot.join( ', ' ) + ']' );
+__debug.push( '\r\n' + __result );
 
-fs.writeFile( `debug/log-${filename}.log`, debug.join( '\r\n' ), 'utf-8', err => {
-	if ( err)
+process.stdout.write( __debug.join( '\n' ) );
+
+fs.writeFile( `debug/log-${__file}.log`, __debug.join( '\r\n' ), 'utf-8', err => {
+	if ( err )
 		throw err;
 } );

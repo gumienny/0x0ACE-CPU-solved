@@ -1,5 +1,4 @@
  reg0:   reg1:   reg2:   reg3:   zero:    line: bin:          assembler:
-
 [0x0000, 0x0000, 0x0000, 0x0000] z: 0  |  000:  0002 f927  |  move r0, 0x27f9
 [0x27f9, 0x0000, 0x0000, 0x0000] z: 0  |  001:  0012 17c5  |  move r1, 0xc517
 [0x27f9, 0xc517, 0x0000, 0x0000] z: 0  |  002:  0022 b433  |  move r2, 0x33b4
